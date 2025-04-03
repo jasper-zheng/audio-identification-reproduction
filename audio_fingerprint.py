@@ -5,6 +5,7 @@ from scipy.ndimage import maximum_filter
 from collections import defaultdict
 import librosa
 
+import pickle
 # import matplotlib.pyplot as plt
 
 
@@ -52,7 +53,8 @@ def generate_hashes(peaks, frequencies, times):
                 fingerprints.append((fingerprint_tuple, time1))
     return fingerprints
 
-def fingerprintBuilder(folder_path, fingerprints_path, **kwargs):
+
+def fingerprintBuilder_args(folder_path, fingerprints_path, **kwargs):
     database = defaultdict(list)
     c = 0
     for file_name in os.listdir(folder_path):
@@ -63,8 +65,27 @@ def fingerprintBuilder(folder_path, fingerprints_path, **kwargs):
             for fingerprint, time in fingerprints:
                 database[fingerprint].append((file_name, time))
 
-    with open(fingerprints_path, "w") as f:
-        for fingerprint, entries in database.items():
-            f.write(f"{fingerprint}: {entries}\n")
+    with open(fingerprints_path, 'wb') as handle:
+        pickle.dump(database, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    print(f"{c} fingerprints saved to {fingerprints_path}")
+    
+    
+def fingerprintBuilder(folder_path, fingerprints_path):
+    kwargs = {'WINDOW_SIZE': 1024,
+              'HOP_LENGTH': 512,
+              'PEAK_NEIGHBORHOOD_SIZE': 20}
+    database = defaultdict(list)
+    c = 0
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(('.wav', '.mp3')):
+            file_path = os.path.join(folder_path, file_name)
+            c += 1
+            fingerprints = generate_fingerprint(file_path, **kwargs)
+            for fingerprint, time in fingerprints:
+                database[fingerprint].append((file_name, time))
+
+    with open(fingerprints_path, 'wb') as handle:
+        pickle.dump(database, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     print(f"{c} fingerprints saved to {fingerprints_path}")
